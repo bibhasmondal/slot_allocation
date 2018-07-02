@@ -7,6 +7,9 @@ from .forms import ClientForm
 from django.db.models import Q
 # Create your views here.
 
+def scoreUpdate():
+    pass
+
 def sendRequest(request):
     if request.POST:
         form=ClientForm(request.POST)
@@ -22,7 +25,7 @@ def sendRequest(request):
 
 def aceeptRequest(request,req_id):
     req=Request.objects.filter(id=req_id).first()
-    req.status='01'     #01 FOR APPROVED
+    req.status='01'     #01 FOR APPROVED 
     req.save()
     Slot.objects.create(request=req)
     return HttpResponse('Complete')
@@ -35,12 +38,16 @@ def rejectRequest(request,req_id):
         slot=Slot.objects.filter(request=req)
         if slot:
             slot.update(status='01')    #01 for REJECT
+            # implement score update feature here
         requested_freelancer=Request.objects.filter(client=req.client).values_list('freelancer')    
         unavailabe_freelancer=Slot.objects.filter(request__client__datetime=req.client.datetime,status='00').values_list('request__freelancer',flat=True)   #00 for approved
         availabe_freelancer=Freelancer.objects.exclude(Q(pk__in=unavailabe_freelancer)|Q(pk__in=requested_freelancer))
         if availabe_freelancer:
             reallocate_freelancer = random.choice(availabe_freelancer)
-            Request.objects.create(freelancer=reallocate_freelancer, client=req.ClientForm) 
+            Request.objects.create(freelancer=reallocate_freelancer, client=req.client)
+        else:
+            #TODO 
+            pass
     return render(request,'slot/reject.html')
 
 def cancelRequest(request):
@@ -52,5 +59,6 @@ def allFreelancer(request):
     return render(request,'slot/index.html',{'freelancers':freelancers})
 
 def getRequest(request,freelancer):
-    requests=Request.objects.filter(freelancer_id=freelancer,status='00',client__status='00')   #00 for waiting request and 00 for confirmed client
-    return render(request,'slot/request.html',{'requests':requests})
+    accept_request=Request.objects.filter(freelancer_id=freelancer,status='01',client__status='00')   #00 for waiting request and 00 for confirmed client
+    waiting_requests=Request.objects.filter(freelancer_id=freelancer,status='00',client__status='00')   #00 for waiting request and 00 for confirmed client
+    return render(request,'slot/request.html',{'accept':accept_request,'wait':waiting_requests})
