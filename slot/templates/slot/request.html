@@ -1,0 +1,11 @@
+{% extends 'slot/base.html' %}
+{% block title %}Notifications{% endblock %}
+{% block content %}
+    {% for request in requests %}
+    <div class="container-fluid">
+        <h2>{{request.client.name}}--{{request.client.venue}}</h2>
+        <a class="btn btn-success" href="{% url 'slot:accept' request.id %}">Accept</a>
+        <a class="btn btn-danger" href="{% url 'slot:reject' request.id %}">Reject</a>
+    </div>
+    {% endfor %}
+{% endblock %}

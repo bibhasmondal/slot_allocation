@@ -1,0 +1,7 @@
+{% extends 'slot/base.html' %}
+{% block title %}Index{% endblock %}
+{% block content %}
+    {% for freelancer in freelancers %}
+        <a href="{% url 'slot:getrequest' freelancer.id %}">{{freelancer}}</a><br>
+    {% endfor %}
+{% endblock %}
