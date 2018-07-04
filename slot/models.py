@@ -25,6 +25,9 @@ class Client(models.Model):
     # longitude = models.FloatField(blank=True)
     def __str__(self):
         return '%s--%s--%s'%(self.name,self.datetime,self.status)
+    def getStatus(self):
+        stat = {'00': 'CONFIRMED', '01': 'CANCELED', '10':'COMPLETED'}
+        return stat[self.status]
 
 class Request(models.Model):
     STAT_CHOICES = (('00', 'WAITING'),('01', 'APPROVED'), ('10', 'REJECTED'))
@@ -33,6 +36,10 @@ class Request(models.Model):
     status = models.CharField(choices=STAT_CHOICES, max_length=2,default='00')
     def __str__(self):
         return '%s--%s--%s' % (self.client, self.freelancer,self.status)
+
+    def getStatus(self):
+        stat = {'00': 'WAITING', '01': 'APPROVED by %s'%self.freelancer.name, '10': 'REJECTED by %s'%self.freelancer.name}
+        return stat[self.status]
 
 class Slot(models.Model):
     STAT_CHOICES = (('00', 'APPROVED'), ('01', 'REJECTED'),('10', 'CANCELED'),('11', 'COMPLETED'))
@@ -43,4 +50,9 @@ class Slot(models.Model):
 
     def __str__(self):
         return '%s--%s' % (self.request, self.status)
+
+    def getStatus(self):
+        stat = {'00': 'APPROVED by %s' % self.request.freelancer.name,
+                '01': 'REJECTED by %s' % self.request.freelancer.name, '10': 'CANCELED', '11': 'COMPLETED'}
+        return stat[self.status]
  

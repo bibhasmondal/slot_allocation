@@ -10,4 +10,5 @@ urlpatterns = [
     url(r'^add/$', addFreelancer, name='add'),
     url(r'^client/$', clientDashboard,name='client'),
     url(r'^freelancer/(?P<freelancer>[0-9]+)/$', getRequest,name='getrequest'),
+    url(r'^client/(?P<client_id>[0-9]+)/$', clientRequest,name='clientrequest'),
 ]

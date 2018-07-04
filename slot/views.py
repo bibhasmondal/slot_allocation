@@ -109,8 +109,12 @@ def getRequest(request,freelancer):
     return render(request,'slot/request.html',{'accept':accept_request,'wait':waiting_requests})
 
 def clientDashboard(request):
-    clients=Client.objects.all()
+    clients=Client.objects.all()    
     return render(request,'slot/client.html',{'clients':clients})
+
+def clientRequest(request,client_id):
+    req=Request.objects.filter(client_id=client_id).last()
+    return render(request,'slot/clientreq.html',{'request':req})
 
 def addFreelancer(request):
     if request.POST:

@@ -2,6 +2,6 @@
 {% block title %}Client Dashboard{% endblock %}
 {% block content %}
     {% for client in clients %}
-        {{client}}<br>
+        <a href="{% url 'slot:clientrequest' client.id %}">{{client}}</a><br>
     {% endfor %}
 {% endblock %}
