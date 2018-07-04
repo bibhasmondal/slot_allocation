@@ -9,10 +9,30 @@
         <link href="https://fonts.googleapis.com/css?family=Montserrat" rel="stylesheet" type="text/css">
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
         <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+        <style>
+        .success { 
+            color:green; 
+        } 
+        .warning { 
+            color: darkred; 
+        }
+        .info { 
+            color: rgb(180, 224, 17); 
+        }
+        </style>
         {% block style %}
         {% endblock %}
     </head>
     <body>
+        {% if messages %}
+            <div class="container-fluid">
+                {% for message in messages %}
+                    <label class="{{ message.tags }}">
+                        {{ message }}
+                    </label>
+                {% endfor %}
+            </div>
+        {% endif %}
         {% block content %}
         {% endblock %}
     </body>

@@ -1,24 +1,68 @@
 from django.shortcuts import render
 from .models import *
-import random
 from django.http import HttpResponse
-from django.shortcuts import render
-from .forms import ClientForm
-from django.db.models import Q
+from django.shortcuts import render,redirect
+from .forms import ClientForm,FreelancerForm
+from django.db.models import Q,Func
+from django.db.models.expressions import RawSQL
+from geocoder.distance import Distance
+import math,geocoder,datetime
+from django.contrib import messages
+from django.urls import reverse
 # Create your views here.
 
-def scoreUpdate():
-    pass
+
+class Near(RawSQL):
+    def __init__(self,latpoint, longpoint, *args,**kwargs):
+        from django.db import connection
+        connection.cursor()
+        connection.connection.create_function('acos', 1, math.acos)
+        connection.connection.create_function('cos', 1, math.cos)
+        connection.connection.create_function('radians', 1, math.radians)
+        connection.connection.create_function('sin', 1, math.sin)
+        connection.connection.create_function('degrees', 1, math.degrees)
+        query = "SELECT latitude, longitude, 111.045 * DEGREES(ACOS(COS(RADIANS(%s)) * COS(RADIANS(latitude)) * COS(RADIANS(%s) - RADIANS(longitude)) + SIN(RADIANS(%s)) * SIN(RADIANS(latitude)))) AS distance FROM slot_freelancer"
+        super(Near, self).__init__(query,(latpoint, longpoint, latpoint), *args,**kwargs)
+
+class NearBy(Func):
+    function='distance'
+    template = "%(function)s(%(expressions)s,'%(substring)s')"
+    def __init__(self, expression, substring):
+        
+        super(NearBy, self).__init__(expression, substring=substring)
+    def as_sqlite(self, compiler, connection):
+        connection.cursor()
+        connection.connection.create_function('distance', 2, Distance)
+        return self.as_sql(compiler, connection, template=self.template)
+
+#print(Freelancer.objects.annotate(dist=Near(latpoint=22.6857561,longpoint=88.33607649999999)))
+
+def scoreUpdate(slot):
+    freelancer = slot.request.freelancer
+    score = {'5': 50, '15': 40, '30': 25, '60': 10, '90': 0}
+    for key,value in score.items():
+        if (slot.request.client.datetime-datetime.datetime.now()).days<=int(key):
+            freelancer.credit_score-=value
+            freelancer.save()
+            break
 
 def sendRequest(request):
     if request.POST:
         form=ClientForm(request.POST)
         if form.is_valid():
             client=form.save()
+            # latlng = geocoder.google(client.venue).latlng
+            # client.latitude = latlng[0]
+            # client.longitude = latlng[1]
+            # client.save()
             unavailabe_freelancer=Slot.objects.filter(request__client__datetime=client.datetime,status='00').values_list('request__freelancer',flat=True)
-            availabe_freelancer=Freelancer.objects.exclude(pk__in=unavailabe_freelancer)
-            allocate_freelancer=random.choice(availabe_freelancer)
-            Request.objects.create(freelancer=allocate_freelancer,client=client)
+            availabe_freelancer=Freelancer.objects.exclude(pk__in=unavailabe_freelancer).annotate(distance=NearBy('venue',client.venue)).order_by('distance','-credit_score')
+            if availabe_freelancer:
+                Request.objects.create(freelancer=availabe_freelancer[0],client=client)
+                messages.success(request,'request confirmed')
+            else:
+                messages.info(request, 'No freelancer availabe now')
+            return redirect('slot:client')
     else:
         form=ClientForm()
     return render(request,'slot/send.html',{'form':form})
@@ -28,26 +72,27 @@ def aceeptRequest(request,req_id):
     req.status='01'     #01 FOR APPROVED 
     req.save()
     Slot.objects.create(request=req)
-    return HttpResponse('Complete')
+    return redirect(reverse('slot:getrequest', kwargs={'freelancer': req.freelancer.id}))
 
 def rejectRequest(request,req_id):
     req = Request.objects.filter(id=req_id,client__status='00').first() #00 CONFIRMED
     if req:
-        req.status='10'
+        req.status='10' #10 for reject
         req.save()
+
         slot=Slot.objects.filter(request=req)
-        if slot:
+        if slot:    #when freelancer is approved request and then reject this will be call
             slot.update(status='01')    #01 for REJECT
-            # implement score update feature here
-        requested_freelancer=Request.objects.filter(client=req.client).values_list('freelancer')    
-        unavailabe_freelancer=Slot.objects.filter(request__client__datetime=req.client.datetime,status='00').values_list('request__freelancer',flat=True)   #00 for approved
-        availabe_freelancer=Freelancer.objects.exclude(Q(pk__in=unavailabe_freelancer)|Q(pk__in=requested_freelancer))
+            scoreUpdate(slot.first())   # score update done here
+
+        requested_freelancer=Request.objects.filter(client=req.client).values_list('freelancer')    #already requested freelancer
+        unavailabe_freelancer=Slot.objects.filter(request__client__datetime=req.client.datetime,status='00').values_list('request__freelancer',flat=True)   #00 for approved    commited freelancer for that day
+        availabe_freelancer=Freelancer.objects.exclude(Q(pk__in=unavailabe_freelancer)|Q(pk__in=requested_freelancer)).annotate(distance=NearBy('venue',req.client.venue)).order_by('distance','-credit_score')
         if availabe_freelancer:
-            reallocate_freelancer = random.choice(availabe_freelancer)
-            Request.objects.create(freelancer=reallocate_freelancer, client=req.client)
+            Request.objects.create(freelancer=availabe_freelancer[0], client=req.client)
+            messages.success(request, 'request confirmed')
         else:
-            #TODO 
-            pass
+            messages.info(request, 'No freelancer availabe now')
     return render(request,'slot/reject.html')
 
 def cancelRequest(request):
@@ -62,3 +107,18 @@ def getRequest(request,freelancer):
     accept_request=Request.objects.filter(freelancer_id=freelancer,status='01',client__status='00')   #00 for waiting request and 00 for confirmed client
     waiting_requests=Request.objects.filter(freelancer_id=freelancer,status='00',client__status='00')   #00 for waiting request and 00 for confirmed client
     return render(request,'slot/request.html',{'accept':accept_request,'wait':waiting_requests})
+
+def clientDashboard(request):
+    clients=Client.objects.all()
+    return render(request,'slot/client.html',{'clients':clients})
+
+def addFreelancer(request):
+    if request.POST:
+        form=FreelancerForm(request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request,'Successfully added')
+        return redirect('slot:freelancer')
+    else:
+        form=FreelancerForm()
+    return render(request,'slot/add.html',{'form':form})

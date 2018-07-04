@@ -5,9 +5,12 @@ from django.core.validators import RegexValidator
 class Freelancer(models.Model):
     username = models.CharField(max_length=50, unique=True)
     name=models.CharField(max_length=50)
-    credit_score = models.IntegerField()
+    credit_score = models.IntegerField(default=100)
     phone_regex = RegexValidator(regex=r'^\+?1?\d{10,13}$', message="Phone number must be entered in the format: '+999999999'. Up to 13 digits allowed.")
     ph_no=models.CharField(max_length=13, validators=[phone_regex], blank=True)
+    venue = models.CharField(max_length=50)
+    # latitude=models.FloatField(blank=True)
+    # longitude = models.FloatField(blank=True)
     def __str__(self):
         return self.name
 
@@ -18,6 +21,8 @@ class Client(models.Model):
     datetime = models.DateTimeField()
     venue = models.CharField(max_length=50)
     status = models.CharField(choices=STAT_CHOICES, max_length=2,default='00')
+    # latitude = models.FloatField(blank=True)
+    # longitude = models.FloatField(blank=True)
     def __str__(self):
         return '%s--%s--%s'%(self.name,self.datetime,self.status)
 

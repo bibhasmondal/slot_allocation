@@ -1,0 +1,7 @@
+{% extends 'slot/base.html' %}
+{% block title %}Client Dashboard{% endblock %}
+{% block content %}
+    {% for client in clients %}
+        {{client}}<br>
+    {% endfor %}
+{% endblock %}
