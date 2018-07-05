@@ -1,17 +1,55 @@
 {% extends 'slot/base.html' %}
 {% block title %}Notifications{% endblock %}
 {% block content %}
-    <div class="col-sm-6">
-        {% for request in accept %}    
-            <h2>{{request.client.name}}--{{request.client.venue}}</h2>
-            <a class="btn btn-danger" href="{% url 'slot:reject' request.id %}">Reject</a>
-        {% endfor %}
-    </div>
-    <div class="col-sm-6"></div>
-        {% for request in wait %}    
-            <h2>{{request.client.name}}--{{request.client.venue}}</h2>
-            <a class="btn btn-success" href="{% url 'slot:accept' request.id %}">Accept</a>
-            <a class="btn btn-danger" href="{% url 'slot:reject' request.id %}">Reject</a>
-        {% endfor %}
+    <div class="container-fluid">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th scope="col"><h1>Approved Request</h1></th>
+                    <th scope="col"><h1>Waiting Request</h1></th>
+                    <th scope="col"><h1>Canceled Request</h1></th>
+                    <th scope="col"><h1>Completed Request</h1></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for request in requests %}
+                    <tr>
+                        {% if request.client.status == '10' and request.status == '01' %}
+                            <th></th>
+                            <th></th>
+                            <th><h3>{{request.client.name}}--{{request.client.venue}}</h3></th>
+                            <th></th>
+                        {% else %}
+                            {% if request.status == '00' %}
+                                <th></th>
+                                <th>
+                                    <h3>{{request.client.name}}--{{request.client.venue}}</h3>
+                                    <a class="btn btn-success" href="{% url 'slot:accept' request.id %}">Accept</a>
+                                    <a class="btn btn-danger" href="{% url 'slot:reject' request.id %}">Reject</a>
+                                </th>
+                                <th></th>
+                                <th></th>
+                            {% endif %}
+                            {% if request.status == '01' and request.slot.status != '11' %}
+                                <th>
+                                    <h3>{{request.client.name}}--{{request.client.venue}}</h3>
+                                    <a class="btn btn-success" href="{% url 'slot:complete' request.id %}">Complete</a>
+                                    <a class="btn btn-danger" href="{% url 'slot:reject' request.id %}">Reject</a>
+                                </th>
+                                <th></th>
+                                <th></th>
+                                <th></th>
+                            {% endif %}
+                            {% if request.slot.status == '11' %}
+                                <th></th>
+                                <th></th>
+                                <th></th>
+                                <th><h3>{{request.client.name}}--{{request.client.venue}}</h3></th>
+                            {% endif %}
+                        {% endif %}
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
     </div>
 {% endblock %}

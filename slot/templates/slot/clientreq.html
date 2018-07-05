@@ -1,16 +1,21 @@
 {% extends 'slot/base.html' %}
 {% block title %}{{request.client.name}} | Client{% endblock %}
 {% block content %}
-    <div class="containe-fluid">
-        {{request.client.name}}--{{request.client.datetime}}--{{request.client.venue}}--
-        {% if request.client.status != '00' %}
-            {% if request.slot %}
-                {{request.slot.getStatus}} 
+    <div class="container-fluid">
+        <label>
+            {{request.client.name}}--{{request.client.datetime}}--{{request.client.venue}}--
+            {% if request.client.status != '10' %}
+                {% if request.slot %}
+                    {{request.slot.getStatus}} 
+                {% else %}
+                    {{request.getStatus}}
+                {% endif %}
+                {% if request.client.status != '11' %}
+                    <a class="btn btn-danger" href="{% url 'slot:cancel' request.client.id %}">Cancel</a>
+                {% endif %}
             {% else %}
-                {{request.getStatus}}
+                {{request.client.getStatus}}
             {% endif %}
-        {% else %}
-            {{request.client.getStatus}}
-        {% endif %}
+        </label>
     </div>
 {% endblock %}

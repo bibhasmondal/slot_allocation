@@ -1,10 +1,11 @@
 from django import forms
 from .models import Client,Freelancer
 class ClientForm(forms.ModelForm):
-    datetime = forms.DateTimeField(widget=forms.DateTimeInput(attrs={'type': 'date', 'class': 'form-control'}))
+    date = forms.DateField(widget=forms.DateTimeInput(attrs={'type': 'date'}))
+    time = forms.TimeField(widget=forms.DateTimeInput(attrs={'type': 'time'}))
     class Meta:
         model=Client
-        fields=['name','datetime','venue']
+        fields=['name','date','time','venue']
 
 class FreelancerForm(forms.ModelForm):
     class Meta:
