@@ -9,6 +9,7 @@ from geocoder.distance import Distance
 import math,geocoder,datetime
 from django.contrib import messages
 from django.urls import reverse
+from django.db.models import Count,F
 # Create your views here.
 
 
@@ -59,6 +60,8 @@ def sendRequest(request):
             availabe_freelancer=Freelancer.objects.exclude(pk__in=unavailabe_freelancer).annotate(distance=NearBy('venue',client.venue)).order_by('distance','-credit_score')
             if availabe_freelancer:
                 Request.objects.create(freelancer=availabe_freelancer[0],client=client)
+                client.status='01'  #01 for placed
+                client.save()
                 messages.success(request,'request confirmed')
             else:
                 messages.info(request, 'No freelancer availabe now')
@@ -75,13 +78,13 @@ def aceeptRequest(request,req_id):
     return redirect(reverse('slot:getrequest', kwargs={'freelancer': req.freelancer.id}))
 
 def rejectRequest(request,req_id):
-    req = Request.objects.filter(id=req_id,client__status='00').first() #00 CONFIRMED
+    req = Request.objects.filter(Q(client__status='00')|Q(client__status='01'),id=req_id).first() #00 Waiting and 01 placed
     if req:
         req.status='10' #10 for reject
         req.save()
 
         slot=Slot.objects.filter(request=req)
-        if slot:    #when freelancer is approved request and then reject this will be call
+        if slot:    #when freelancer is approved request and then reject then this will be call
             slot.update(status='01')    #01 for REJECT
             scoreUpdate(slot.first())   # score update done here
 
@@ -92,11 +95,13 @@ def rejectRequest(request,req_id):
             Request.objects.create(freelancer=availabe_freelancer[0], client=req.client)
             messages.success(request, 'request confirmed')
         else:
+            req.client.status='00'  #00 waiting for placed
+            req.client.save()
             messages.info(request, 'No freelancer availabe now')
     return render(request,'slot/reject.html')
 
 def cancelRequest(request):
-    Client.objects.filter(id=request.GET['client']).update(status='01') #01 for CANCELED
+    Client.objects.filter(id=request.GET['client']).update(status='10') #10 for CANCELED
     return HttpResponse('Successfull')
 
 def allFreelancer(request):
@@ -104,8 +109,8 @@ def allFreelancer(request):
     return render(request,'slot/index.html',{'freelancers':freelancers})
 
 def getRequest(request,freelancer):
-    accept_request=Request.objects.filter(freelancer_id=freelancer,status='01',client__status='00')   #00 for waiting request and 00 for confirmed client
-    waiting_requests=Request.objects.filter(freelancer_id=freelancer,status='00',client__status='00')   #00 for waiting request and 00 for confirmed client
+    accept_request=Request.objects.filter(Q(client__status='00')|Q(client__status='01'),freelancer_id=freelancer,status='01')   #01 for aproved request and 00 Waiting and 01 placed
+    waiting_requests = Request.objects.filter(Q(client__status='00') | Q(client__status='01'), freelancer_id=freelancer, status='00')   # 00 for waiting request and 00 Waiting and 01 placed
     return render(request,'slot/request.html',{'accept':accept_request,'wait':waiting_requests})
 
 def clientDashboard(request):
@@ -115,12 +120,26 @@ def clientDashboard(request):
 def clientRequest(request,client_id):
     req=Request.objects.filter(client_id=client_id).last()
     return render(request,'slot/clientreq.html',{'request':req})
+    
+
+
+def createRequest(freelancer):
+    clients = Client.objects.filter(status='00')
+    clients_date = clients.values_list('datetime', flat=True).distinct()
+    for client_date in clients_date:
+        client=clients.filter(datetime=client_date).first()
+        client.status = '01'
+        client.save()
+        Request.objects.create(freelancer=freelancer,client=client)
+
+
 
 def addFreelancer(request):
     if request.POST:
         form=FreelancerForm(request.POST)
         if form.is_valid():
-            form.save()
+            freelancer=form.save()
+            transaction.on_commit(lambda:createRequest(freelancer=freelancer))
             messages.success(request,'Successfully added')
         return redirect('slot:freelancer')
     else:

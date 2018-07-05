@@ -1,5 +1,6 @@
 from django.db import models
 from django.core.validators import RegexValidator
+from django.db import transaction
 # Create your models here.
 
 class Freelancer(models.Model):
@@ -14,11 +15,11 @@ class Freelancer(models.Model):
     def __str__(self):
         return self.name
 
-
 class Client(models.Model):
-    STAT_CHOICES=(('00','CONFIRMED'),('01','CANCELED'),('10','COMPLETED'))
+    STAT_CHOICES = (('00', 'WAITING'), ('01', 'PLACED'),
+                    ('10', 'CANCELED'), ('11 ', 'COMPLETED'))
     name = models.CharField(max_length=50)
-    datetime = models.DateTimeField()
+    datetime = models.DateTimeField() 
     venue = models.CharField(max_length=50)
     status = models.CharField(choices=STAT_CHOICES, max_length=2,default='00')
     # latitude = models.FloatField(blank=True)
@@ -26,7 +27,7 @@ class Client(models.Model):
     def __str__(self):
         return '%s--%s--%s'%(self.name,self.datetime,self.status)
     def getStatus(self):
-        stat = {'00': 'CONFIRMED', '01': 'CANCELED', '10':'COMPLETED'}
+        stat = {'00': 'Waiting for freelancer', '01': 'CANCELED', '10':'COMPLETED'}
         return stat[self.status]
 
 class Request(models.Model):
@@ -38,7 +39,7 @@ class Request(models.Model):
         return '%s--%s--%s' % (self.client, self.freelancer,self.status)
 
     def getStatus(self):
-        stat = {'00': 'WAITING', '01': 'APPROVED by %s'%self.freelancer.name, '10': 'REJECTED by %s'%self.freelancer.name}
+        stat = {'00': 'Waiting for %s\'s response'%self.freelancer.name, '01': 'APPROVED by %s'%self.freelancer.name, '10': 'REJECTED by %s'%self.freelancer.name}
         return stat[self.status]
 
 class Slot(models.Model):

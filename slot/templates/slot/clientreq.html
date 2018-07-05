@@ -1,12 +1,16 @@
 {% extends 'slot/base.html' %}
-{% block title %}Notifications{% endblock %}
+{% block title %}{{request.client.name}} | Client{% endblock %}
 {% block content %}
     <div class="containe-fluid">
         {{request.client.name}}--{{request.client.datetime}}--{{request.client.venue}}--
-        {% if request.slot %}
-            {{request.slot.getStatus}} 
+        {% if request.client.status != '00' %}
+            {% if request.slot %}
+                {{request.slot.getStatus}} 
+            {% else %}
+                {{request.getStatus}}
+            {% endif %}
         {% else %}
-            {{request.getStatus}}
+            {{request.client.getStatus}}
         {% endif %}
     </div>
 {% endblock %}
