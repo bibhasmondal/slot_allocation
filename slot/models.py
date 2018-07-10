@@ -8,7 +8,7 @@ class Freelancer(models.Model):
     name=models.CharField(max_length=50)
     credit_score = models.IntegerField(default=100)
     phone_regex = RegexValidator(regex=r'^\+?1?\d{10,13}$', message="Phone number must be entered in the format: '+999999999'. Up to 13 digits allowed.")
-    ph_no=models.CharField(max_length=13, validators=[phone_regex], blank=True)
+    ph_no=models.CharField(max_length=13, blank=True)
     venue = models.CharField(max_length=50)
     # latitude=models.FloatField(blank=True)
     # longitude = models.FloatField(blank=True)
