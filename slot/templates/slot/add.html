@@ -1,4 +1,11 @@
-<form action="." method="post">
-    {% csrf_token %} {{form.as_p}}
-    <input type="submit" value="Submit">
-</form>
+{% extends 'slot/base.html' %}
+{% block title %}{{request.client.name}}Add | Freelancer{% endblock %}
+{% block content %}
+    <div class="container-fluid">
+        <form action="." method="post">
+            {% csrf_token %} 
+            {{form.as_p}}
+            <input type="submit" value="Submit">
+        </form>
+    </div>
+{% endblock %}
