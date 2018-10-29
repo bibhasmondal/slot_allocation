@@ -26,8 +26,7 @@ class Near(RawSQL):
 class NearBy(Func):
     function='distance'
     template = "%(function)s(%(expressions)s,'%(substring)s')"
-    def __init__(self, expression, substring):
-        
+    def __init__(self, expression, substring):        
         super(NearBy, self).__init__(expression, substring=substring)
     def as_sqlite(self, compiler, connection):
         connection.cursor()
